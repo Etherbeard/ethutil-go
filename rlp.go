@@ -7,6 +7,15 @@ import (
   "math/big"
 )
 
+///////////////////////////////////////
+type EthEncoder interface {
+  EncodeData(rlpData interface{}) []byte
+}
+type EthDecoder interface {
+  Get(idx int) *RlpDataAttribute
+}
+//////////////////////////////////////
+
 type RlpEncoder struct {
   rlpData []byte
 }
@@ -15,8 +24,8 @@ func NewRlpEncoder() *RlpEncoder {
 
   return encoder
 }
-func (coder *RlpEncoder) EncodeData(rlpData []interface{}) []byte {
-  return nil
+func (coder *RlpEncoder) EncodeData(rlpData interface{}) []byte {
+  return Encode(rlpData)
 }
 
 // Data attributes are returned by the rlp decoder. The data attributes represents
@@ -93,9 +102,11 @@ func (attr *RlpDataAttribute) Get(idx int) *RlpDataAttribute {
   return NewRlpDataAttribute(nil)
 }
 
+
 type RlpDecoder struct {
   rlpData interface{}
 }
+
 func NewRlpDecoder(rlpData []byte) *RlpDecoder {
   decoder := &RlpDecoder{}
   // Decode the data

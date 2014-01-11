@@ -11,17 +11,20 @@ type Block struct {
 	// Hash to the previous block
 	prevHash string
 	// Uncles of this block
-	uncles   []*Block
+	uncles   []string
+	// The coin base address
 	coinbase string
-	// state xxx
+	// Block Trie state
 	state      *Trie
+	// Difficulty for the current block
 	difficulty uint32
 	// Creation time
 	time  int64
+	// Block nonce for verification
 	nonce uint32
 	// List of transactions and/or contracts
 	transactions []*Transaction
-
+	// Extra (unused)
 	extra string
 }
 
@@ -143,30 +146,16 @@ func (block *Block) MarshalRlp() []byte {
 		// Cast it to a string (safe)
 		encTx[i] = string(tx.MarshalRlp())
 	}
-	// TODO
-	uncles := []interface{}{}
+	tsha := Sha256Bin([]byte(Encode(encTx)))
 
-	// I made up the block. It should probably contain different data or types.
-	// It sole purpose now is testing
-	header := []interface{}{
-		block.number,
-		block.prevHash,
-		// Sha of uncles
-		"",
-		block.coinbase,
-		// root state
-		block.state.Root,
-		// Sha of tx
-		string(Sha256Bin([]byte(Encode(encTx)))),
-		block.difficulty,
-		uint64(block.time),
-		block.nonce,
-		block.extra,
-	}
+	// Sha of the concatenated uncles
+	usha := Sha256Bin(Encode(block.uncles))
+	// The block header
+	header := block.header(tsha, usha)
 
 	// Encode a slice interface which contains the header and the list of
 	// transactions.
-	return Encode([]interface{}{header, encTx, uncles})
+	return Encode([]interface{}{header, encTx, block.uncles})
 }
 
 func (block *Block) UnmarshalRlp(data []byte) {
@@ -189,5 +178,32 @@ func (block *Block) UnmarshalRlp(data []byte) {
 		tx := &Transaction{}
 		tx.UnmarshalRlp(txes.Get(i).AsBytes())
 		block.transactions[i] = tx
+	}
+}
+
+
+//////////// UNEXPORTED /////////////////
+func (block *Block) header(txSha []byte, uncleSha []byte) []interface{} {
+	return []interface{}{
+		// The block number
+		block.number,
+		// Sha of the previous block
+		block.prevHash,
+		// Sha of uncles
+		uncleSha,
+		// Coinbase address
+		block.coinbase,
+		// root state
+		block.state.Root,
+		// Sha of tx
+		txSha,
+		// Current block difficulty
+		block.difficulty,
+		// Time the block was found?
+		uint64(block.time),
+		// Block's nonce for validation
+		block.nonce,
+		// Extra (unused)
+		block.extra,
 	}
 }

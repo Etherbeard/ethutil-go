@@ -3,6 +3,7 @@ package ethutil
 import (
 	"fmt"
 	"time"
+	"math/big"
 )
 
 type Block struct {
@@ -17,11 +18,11 @@ type Block struct {
 	// Block Trie state
 	state      *Trie
 	// Difficulty for the current block
-	difficulty uint32
+	difficulty *big.Int
 	// Creation time
 	time  int64
 	// Block nonce for verification
-	nonce uint32
+	nonce *big.Int
 	// List of transactions and/or contracts
 	transactions []*Transaction
 	// Extra (unused)
@@ -44,8 +45,8 @@ func CreateTestBlock( /* TODO use raw data */ transactions []*Transaction) *Bloc
 		number:       1,
 		prevHash:     "1234",
 		coinbase:     "me",
-		difficulty:   10,
-		nonce:        0,
+		difficulty:   big.NewInt(10),
+		nonce:        BigInt0,
 		time:         time.Now().Unix(),
 	}
 
@@ -56,8 +57,8 @@ func CreateBlock(root string,
 	num int,
 	prevHash string,
 	base string,
-	difficulty int,
-	nonce int,
+	difficulty *big.Int,
+	nonce *big.Int,
 	extra string,
 	txes []*Transaction) *Block {
 
@@ -67,8 +68,8 @@ func CreateBlock(root string,
 		number:       uint32(num),
 		prevHash:     prevHash,
 		coinbase:     base,
-		difficulty:   uint32(difficulty),
-		nonce:        uint32(nonce),
+		difficulty:   difficulty,
+		nonce:        nonce,
 		time:         time.Now().Unix(),
 		extra:        extra,
 	}
@@ -76,7 +77,7 @@ func CreateBlock(root string,
 
 	for _, tx := range txes {
 		// Create contract if there's no recipient
-		if tx.recipient == "" {
+		if tx.IsContract() {
 			addr := tx.Hash()
 
 			contract := NewContract(tx.value, []byte(""))
@@ -167,9 +168,9 @@ func (block *Block) UnmarshalRlp(data []byte) {
 	// sha of uncles is header[2]
 	block.coinbase = header.Get(3).AsString()
 	block.state = NewTrie(Config.Db, header.Get(4).AsString())
-	block.difficulty = uint32(header.Get(5).AsUint())
+	block.difficulty = header.Get(5).AsBigInt()
 	block.time = int64(header.Get(6).AsUint())
-	block.nonce = uint32(header.Get(7).AsUint())
+	block.nonce = header.Get(7).AsBigInt()
 	block.extra = header.Get(8).AsString()
 
 	txes := decoder.Get(1)

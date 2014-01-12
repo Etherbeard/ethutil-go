@@ -2,8 +2,7 @@ package ethutil
 
 // TODO I think this should be moved elsewhere
 
-import (
-)
+import ()
 
 /*
  * This is the special genesis block.

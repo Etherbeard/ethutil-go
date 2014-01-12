@@ -2,8 +2,8 @@ package ethutil
 
 import (
 	"fmt"
-	"time"
 	"math/big"
+	"time"
 )
 
 type Block struct {
@@ -17,16 +17,16 @@ type Block struct {
 	// The coin base address
 	Coinbase string
 	// Block Trie state
-	state      *Trie
+	state *Trie
 	// Difficulty for the current block
 	Difficulty *big.Int
 	// Creation time
-	time  int64
+	time int64
 	// Block Nonce for verification
 	Nonce *big.Int
 	// List of transactions and/or contracts
 	transactions []*Transaction
-	TxSha []byte
+	TxSha        []byte
 	// Extra (unused)
 	extra string
 }

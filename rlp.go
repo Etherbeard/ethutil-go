@@ -150,8 +150,8 @@ func ToBinarySlice(n uint64, length uint64) []uint64 {
 		return []uint64{}
 	}
 
-	slice := ToBinarySlice(n / 256, 0)
-	slice = append(slice, n % 256)
+	slice := ToBinarySlice(n/256, 0)
+	slice = append(slice, n%256)
 
 	return slice
 }
@@ -170,7 +170,7 @@ func FromBin(data []byte) uint64 {
 		return 0
 	}
 
-	return FromBin(data[:len(data)-1]) * 256 + uint64(data[len(data)-1])
+	return FromBin(data[:len(data)-1])*256 + uint64(data[len(data)-1])
 }
 
 func Decode(data []byte, pos uint64) (interface{}, uint64) {

@@ -1,9 +1,9 @@
 package ethutil
 
 import (
-	"io"
-	"encoding/binary"
 	"crypto/rand"
+	"encoding/binary"
+	"io"
 )
 
 func randomUint64(r io.Reader) (uint64, error) {

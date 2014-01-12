@@ -5,7 +5,6 @@ import (
 	"github.com/obscuren/secp256k1-go"
 )
 
-
 type Transaction struct {
 	nonce     string
 	sender    string
@@ -132,4 +131,3 @@ func (tx *Transaction) UnmarshalRlp(data []byte) {
 	tx.r = decoder.Get(6).AsBytes()
 	tx.s = decoder.Get(7).AsBytes()
 }
-

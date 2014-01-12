@@ -3,7 +3,6 @@ package ethutil
 // TODO I think this should be moved elsewhere
 
 import (
-	"math"
 )
 
 /*
@@ -11,8 +10,6 @@ import (
  */
 
 var GenisisHeader = []interface{}{
-	// Block number
-	uint32(0),
 	// Previous hash (none)
 	"",
 	// Sha of uncles
@@ -24,11 +21,11 @@ var GenisisHeader = []interface{}{
 	// Sha of transactions
 	string(Sha256Bin(Encode([]interface{}{}))),
 	// Difficulty
-	uint32(math.Pow(2, 36)),
+	BigPow(2, 26),
 	// Time
 	uint64(1),
 	// Nonce
-	uint32(0),
+	Big("0"),
 	// Extra
 	"",
 }

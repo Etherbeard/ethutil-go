@@ -119,8 +119,11 @@ type RlpDecoder struct {
 func NewRlpDecoder(rlpData []byte) *RlpDecoder {
 	decoder := &RlpDecoder{}
 	// Decode the data
-	data, _ := Decode(rlpData, 0)
-	decoder.rlpData = data
+
+	if len(rlpData) != 0 {
+		data, _ := Decode(rlpData, 0)
+		decoder.rlpData = data
+	}
 
 	return decoder
 }
@@ -144,11 +147,11 @@ func ToBinarySlice(n uint64, length uint64) []uint64 {
 	}
 
 	if n == 0 {
-		return make([]uint64, 1)
+		return []uint64{}
 	}
 
-	slice := ToBinarySlice(n/256, 0)
-	slice = append(slice, n%256)
+	slice := ToBinarySlice(n / 256, 0)
+	slice = append(slice, n % 256)
 
 	return slice
 }
@@ -156,7 +159,7 @@ func ToBinarySlice(n uint64, length uint64) []uint64 {
 func ToBin(n uint64, length uint64) string {
 	var buf bytes.Buffer
 	for _, val := range ToBinarySlice(n, length) {
-		buf.WriteString(string(val))
+		buf.WriteByte(byte(val))
 	}
 
 	return buf.String()
@@ -167,11 +170,11 @@ func FromBin(data []byte) uint64 {
 		return 0
 	}
 
-	return FromBin(data[:len(data)-1])*256 + uint64(data[len(data)-1])
+	return FromBin(data[:len(data)-1]) * 256 + uint64(data[len(data)-1])
 }
 
-func Decode(data []byte, pos int) (interface{}, int) {
-	if pos > len(data)-1 {
+func Decode(data []byte, pos uint64) (interface{}, uint64) {
+	if pos > uint64(len(data)-1) {
 		panic(fmt.Sprintf("index out of range %d for data %q, l = %d", pos, data, len(data)))
 	}
 
@@ -182,27 +185,27 @@ func Decode(data []byte, pos int) (interface{}, int) {
 		return data[pos], pos + 1
 
 	case char < 56:
-		b := int(data[pos]) - 23
+		b := uint64(data[pos]) - 23
 		return FromBin(data[pos+1 : pos+1+b]), pos + 1 + b
 
 	case char < 64:
-		b := int(data[pos]) - 55
-		b2 := int(FromBin(data[pos+1 : pos+1+b]))
+		b := uint64(data[pos]) - 55
+		b2 := uint64(FromBin(data[pos+1 : pos+1+b]))
 		return FromBin(data[pos+1+b : pos+1+b+b2]), pos + 1 + b + b2
 
 	case char < 120:
-		b := int(data[pos]) - 64
+		b := uint64(data[pos]) - 64
 		return data[pos+1 : pos+1+b], pos + 1 + b
 
 	case char < 128:
-		b := int(data[pos]) - 119
-		b2 := int(FromBin(data[pos+1 : pos+1+b]))
+		b := uint64(data[pos]) - 119
+		b2 := uint64(FromBin(data[pos+1 : pos+1+b]))
 		return data[pos+1+b : pos+1+b+b2], pos + 1 + b + b2
 
 	case char < 184:
-		b := int(data[pos]) - 128
+		b := uint64(data[pos]) - 128
 		pos++
-		for i := 0; i < b; i++ {
+		for i := uint64(0); i < b; i++ {
 			var obj interface{}
 
 			obj, pos = Decode(data, pos)
@@ -211,10 +214,10 @@ func Decode(data []byte, pos int) (interface{}, int) {
 		return slice, pos
 
 	case char < 192:
-		b := int(data[pos]) - 183
+		b := uint64(data[pos]) - 183
 		//b2 := int(FromBin(data[pos+1 : pos+1+b])) (ref implementation has an unused variable)
 		pos = pos + 1 + b
-		for i := 0; i < b; i++ {
+		for i := uint64(0); i < b; i++ {
 			var obj interface{}
 
 			obj, pos = Decode(data, pos)

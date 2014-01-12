@@ -22,8 +22,8 @@ type Block struct {
 	Difficulty *big.Int
 	// Creation time
 	time  int64
-	// Block nonce for verification
-	nonce *big.Int
+	// Block Nonce for verification
+	Nonce *big.Int
 	// List of transactions and/or contracts
 	transactions []*Transaction
 	TxSha []byte
@@ -48,7 +48,7 @@ func CreateTestBlock( /* TODO use raw data */ transactions []*Transaction) *Bloc
 		PrevHash:     "1234",
 		Coinbase:     "me",
 		Difficulty:   big.NewInt(10),
-		nonce:        BigInt0,
+		Nonce:        BigInt0,
 		time:         time.Now().Unix(),
 	}
 
@@ -60,7 +60,7 @@ func CreateBlock(root string,
 	PrevHash string,
 	base string,
 	Difficulty *big.Int,
-	nonce *big.Int,
+	Nonce *big.Int,
 	extra string,
 	txes []*Transaction) *Block {
 
@@ -71,7 +71,7 @@ func CreateBlock(root string,
 		PrevHash:     PrevHash,
 		Coinbase:     base,
 		Difficulty:   Difficulty,
-		nonce:        nonce,
+		Nonce:        Nonce,
 		time:         time.Now().Unix(),
 		extra:        extra,
 	}
@@ -128,7 +128,6 @@ func (block *Block) PayFee(addr []byte, fee *big.Int) bool {
 		return false
 	}
 
-
 	base := new(big.Int)
 	contract.Amount = base.Sub(contract.Amount, fee)
 	block.state.Update(string(addr), string(contract.MarshalRlp()))
@@ -148,7 +147,7 @@ func (block *Block) PayFee(addr []byte, fee *big.Int) bool {
 
 // Returns a hash of the block
 func (block *Block) Hash() []byte {
-	return Sha256Bin(block.MarshalRlp())
+	return Sha256Bin(Encode(block.header(block.TxSha, block.UncleSha)))
 }
 
 func (block *Block) MarshalRlp() []byte {
@@ -187,7 +186,7 @@ func (block *Block) UnmarshalRlp(data []byte) {
 	block.TxSha = header.Get(4).AsBytes()
 	block.Difficulty = header.Get(5).AsBigInt()
 	block.time = int64(header.Get(6).AsUint())
-	block.nonce = header.Get(7).AsBigInt()
+	block.Nonce = header.Get(7).AsBigInt()
 
 	// Tx list might be empty if this is an uncle. Uncles only have their
 	// header set.
@@ -231,8 +230,8 @@ func (block *Block) header(txSha []byte, uncleSha []byte) []interface{} {
 		block.Difficulty,
 		// Time the block was found?
 		uint64(block.time),
-		// Block's nonce for validation
-		block.nonce,
+		// Block's Nonce for validation
+		block.Nonce,
 	}
 }
 
@@ -252,7 +251,7 @@ func (block *Block) uncleHeader() []interface{} {
 		block.Difficulty,
 		// Time the block was found?
 		uint64(block.time),
-		// Block's nonce for validation
-		block.nonce,
+		// Block's Nonce for validation
+		block.Nonce,
 	}
 }

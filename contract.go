@@ -1,31 +1,31 @@
 package ethutil
 
 import (
-	_ "fmt"
+	"math/big"
 )
 
 type Contract struct {
 	t      uint32 // contract is always 1
-	amount uint64 // ???
+	Amount *big.Int
 	state  *Trie
 }
 
-func NewContract(amount uint64, root []byte) *Contract {
-	contract := &Contract{t: 1, amount: amount}
+func NewContract(Amount *big.Int, root []byte) *Contract {
+	contract := &Contract{t: 1, Amount: Amount}
 	contract.state = NewTrie(Config.Db, string(root))
 
 	return contract
 }
 
 func (c *Contract) MarshalRlp() []byte {
-	return Encode([]interface{}{c.t, c.amount, c.state.Root})
+	return Encode([]interface{}{c.t, c.Amount, c.state.Root})
 }
 
 func (c *Contract) UnmarshalRlp(data []byte) {
 	decoder := NewRlpDecoder(data)
 
 	c.t = uint32(decoder.Get(0).AsUint())
-	c.amount = decoder.Get(1).AsUint()
+	c.Amount = decoder.Get(1).AsBigInt()
 	c.state = NewTrie(Config.Db, decoder.Get(2).AsString())
 }
 
@@ -35,8 +35,8 @@ func (c *Contract) State() *Trie {
 
 type Ether struct {
 	t      uint32
-	amount uint64
-	nonce  string
+	Amount *big.Int
+	Nonce  string
 }
 
 func NewEtherFromData(data []byte) *Ether {
@@ -46,24 +46,18 @@ func NewEtherFromData(data []byte) *Ether {
 	return ether
 }
 
+func (e *Ether) AddFee(fee *big.Int) {
+	e.Amount = e.Amount.Add(e.Amount, fee)
+}
+
 func (e *Ether) MarshalRlp() []byte {
-	return Encode([]interface{}{e.t, e.amount, e.nonce})
+	return Encode([]interface{}{e.t, e.Amount, e.Nonce})
 }
 
 func (e *Ether) UnmarshalRlp(data []byte) {
-	t, _ := Decode(data, 0)
+	decoder := NewRlpDecoder(data)
 
-	if slice, ok := t.([]interface{}); ok {
-		if t, ok := slice[0].(uint8); ok {
-			e.t = uint32(t)
-		}
-
-		if amount, ok := slice[1].(uint8); ok {
-			e.amount = uint64(amount)
-		}
-
-		if nonce, ok := slice[2].([]uint8); ok {
-			e.nonce = string(nonce)
-		}
-	}
+	e.t = uint32(decoder.Get(0).AsUint())
+	e.Amount = decoder.Get(1).AsBigInt()
+	e.Nonce = decoder.Get(2).AsString()
 }

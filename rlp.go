@@ -41,12 +41,20 @@ func NewRlpDataAttribute(attrib interface{}) *RlpDataAttribute {
 	return &RlpDataAttribute{dataAttrib: attrib}
 }
 
+func (attr *RlpDataAttribute) IsNil() bool {
+	return attr.dataAttrib == nil
+}
+
 func (attr *RlpDataAttribute) Length() int {
 	if data, ok := attr.dataAttrib.([]interface{}); ok {
 		return len(data)
 	}
 
 	return 0
+}
+
+func (attr *RlpDataAttribute) AsRaw() interface{} {
+	return attr.dataAttrib
 }
 
 func (attr *RlpDataAttribute) AsUint() uint64 {

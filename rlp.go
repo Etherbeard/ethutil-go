@@ -3,8 +3,10 @@ package ethutil
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
+	"reflect"
 )
 
 ///////////////////////////////////////
@@ -35,10 +37,19 @@ func (coder *RlpEncoder) EncodeData(rlpData interface{}) []byte {
 // It always returns something valid
 type RlpDataAttribute struct {
 	dataAttrib interface{}
+	kind       reflect.Value
+}
+
+func Conv(attrib interface{}) *RlpDataAttribute {
+	return &RlpDataAttribute{dataAttrib: attrib, kind: reflect.ValueOf(attrib)}
 }
 
 func NewRlpDataAttribute(attrib interface{}) *RlpDataAttribute {
 	return &RlpDataAttribute{dataAttrib: attrib}
+}
+
+func (attr *RlpDataAttribute) Type() reflect.Kind {
+	return reflect.TypeOf(attr.dataAttrib).Kind()
 }
 
 func (attr *RlpDataAttribute) IsNil() bool {
@@ -46,6 +57,7 @@ func (attr *RlpDataAttribute) IsNil() bool {
 }
 
 func (attr *RlpDataAttribute) Length() int {
+	//return attr.kind.Len()
 	if data, ok := attr.dataAttrib.([]interface{}); ok {
 		return len(data)
 	}
@@ -84,6 +96,10 @@ func (attr *RlpDataAttribute) AsBigInt() *big.Int {
 func (attr *RlpDataAttribute) AsString() string {
 	if a, ok := attr.dataAttrib.([]byte); ok {
 		return string(a)
+	} else if a, ok := attr.dataAttrib.(string); ok {
+		return a
+	} else {
+		//panic(fmt.Sprintf("not string %T: %v", attr.dataAttrib, attr.dataAttrib))
 	}
 
 	return ""
@@ -95,6 +111,14 @@ func (attr *RlpDataAttribute) AsBytes() []byte {
 	}
 
 	return make([]byte, 0)
+}
+
+func (attr *RlpDataAttribute) AsSlice() []interface{} {
+	if d, ok := attr.dataAttrib.([]interface{}); ok {
+		return d
+	}
+
+	return []interface{}{}
 }
 
 // Threat the attribute as a slice
@@ -175,7 +199,8 @@ func FromBin(data []byte) uint64 {
 
 func Decode(data []byte, pos uint64) (interface{}, uint64) {
 	if pos > uint64(len(data)-1) {
-		panic(fmt.Sprintf("index out of range %d for data %q, l = %d", pos, data, len(data)))
+		log.Println(data)
+		log.Panicf("index out of range %d for data %q, l = %d", pos, data, len(data))
 	}
 
 	char := int(data[pos])

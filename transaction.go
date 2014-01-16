@@ -3,36 +3,32 @@ package ethutil
 import (
 	"fmt"
 	"github.com/obscuren/secp256k1-go"
+	"math/big"
 )
 
 type Transaction struct {
-	nonce     string
-	sender    string
-	recipient string
-	value     uint64
-	fee       uint32
-	data      []string
-	memory    []int
-	lastTx    string
+	Nonce     string
+	Recipient string
+	Value     *big.Int
+	Data      []string
+	Memory    []int
 	v         uint32
 	r, s      []byte
 }
 
-func NewTransaction(to string, value uint64, data []string) *Transaction {
-	tx := Transaction{sender: "1234567890", recipient: to, value: value}
-	tx.nonce = "0"
-	tx.fee = 0 //uint32((ContractFee + MemoryFee * float32(len(tx.data))) * 1e8)
-	tx.lastTx = "0"
+func NewTransaction(to string, value *big.Int, data []string) *Transaction {
+	tx := Transaction{Recipient: to, Value: value}
+	tx.Nonce = "0"
 
 	// Serialize the data
-	tx.data = make([]string, len(data))
+	tx.Data = make([]string, len(data))
 	for i, val := range data {
 		instr, err := CompileInstr(val)
 		if err != nil {
 			//fmt.Printf("compile error:%d %v\n", i+1, err)
 		}
 
-		tx.data[i] = instr
+		tx.Data[i] = instr
 	}
 
 	tx.Sign([]byte("privkey"))
@@ -43,18 +39,17 @@ func NewTransaction(to string, value uint64, data []string) *Transaction {
 
 func (tx *Transaction) Hash() []byte {
 	preEnc := []interface{}{
-		tx.nonce,
-		tx.recipient,
-		tx.value,
-		tx.fee,
-		tx.data,
+		tx.Nonce,
+		tx.Recipient,
+		tx.Value,
+		tx.Data,
 	}
 
 	return Sha256Bin(Encode(preEnc))
 }
 
 func (tx *Transaction) IsContract() bool {
-	return tx.recipient == ""
+	return tx.Recipient == ""
 }
 
 func (tx *Transaction) Signature(key []byte) []byte {
@@ -99,11 +94,10 @@ func (tx *Transaction) Sign(privk []byte) {
 func (tx *Transaction) MarshalRlp() []byte {
 	// Prepare the transaction for serialization
 	preEnc := []interface{}{
-		tx.nonce,
-		tx.recipient,
-		tx.value,
-		tx.fee,
-		tx.data,
+		tx.Nonce,
+		tx.Recipient,
+		tx.Value,
+		tx.Data,
 		tx.v,
 		tx.r,
 		tx.s,
@@ -115,19 +109,18 @@ func (tx *Transaction) MarshalRlp() []byte {
 func (tx *Transaction) UnmarshalRlp(data []byte) {
 	decoder := NewRlpDecoder(data)
 
-	tx.nonce = decoder.Get(0).AsString()
-	tx.recipient = decoder.Get(0).AsString()
-	tx.value = decoder.Get(2).AsUint()
-	tx.fee = uint32(decoder.Get(3).AsUint())
+	tx.Nonce = decoder.Get(0).AsString()
+	tx.Recipient = decoder.Get(0).AsString()
+	tx.Value = decoder.Get(2).AsBigInt()
 
-	d := decoder.Get(4)
-	tx.data = make([]string, d.Length())
+	d := decoder.Get(3)
+	tx.Data = make([]string, d.Length())
 	fmt.Println(d.Get(0))
 	for i := 0; i < d.Length(); i++ {
-		tx.data[i] = d.Get(i).AsString()
+		tx.Data[i] = d.Get(i).AsString()
 	}
 
-	tx.v = uint32(decoder.Get(5).AsUint())
-	tx.r = decoder.Get(6).AsBytes()
-	tx.s = decoder.Get(7).AsBytes()
+	tx.v = uint32(decoder.Get(4).AsUint())
+	tx.r = decoder.Get(5).AsBytes()
+	tx.s = decoder.Get(6).AsBytes()
 }

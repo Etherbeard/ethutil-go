@@ -82,10 +82,10 @@ func CreateBlock(root string,
 		if tx.IsContract() {
 			addr := tx.Hash()
 
-			value := big.NewInt(int64(tx.value))
+			value := tx.Value
 			contract := NewContract(value, []byte(""))
 			block.state.Update(string(addr), string(contract.MarshalRlp()))
-			for i, val := range tx.data {
+			for i, val := range tx.Data {
 				contract.state.Update(string(NumberToBytes(uint64(i), 32)), val)
 			}
 			block.UpdateContract(addr, contract)

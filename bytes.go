@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 )
 
-func NumberToBytes(num uint64, bits int) []byte {
+func NumberToBytes(num interface{}, bits int) []byte {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, num)
 	if err != nil {
@@ -18,7 +19,7 @@ func NumberToBytes(num uint64, bits int) []byte {
 
 func BytesToNumber(b []byte) (number uint64) {
 	buf := bytes.NewReader(b)
-	err := binary.Read(buf, binary.LittleEndian, &number)
+	err := binary.Read(buf, binary.BigEndian, &number)
 	if err != nil {
 		fmt.Println("binary.Read failed:", err)
 	}

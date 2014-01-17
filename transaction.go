@@ -37,6 +37,13 @@ func NewTransaction(to string, value *big.Int, data []string) *Transaction {
 	return &tx
 }
 
+func NewTransactionFromData(data []byte) *Transaction {
+	tx := &Transaction{}
+	tx.RlpDecode(data)
+
+	return tx
+}
+
 func (tx *Transaction) Hash() []byte {
 	preEnc := []interface{}{
 		tx.Nonce,

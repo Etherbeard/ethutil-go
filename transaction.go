@@ -91,7 +91,7 @@ func (tx *Transaction) Sign(privk []byte) {
 	tx.s = sig[32:65]
 }
 
-func (tx *Transaction) MarshalRlp() []byte {
+func (tx *Transaction) RlpEncode() []byte {
 	// Prepare the transaction for serialization
 	preEnc := []interface{}{
 		tx.Nonce,
@@ -106,7 +106,7 @@ func (tx *Transaction) MarshalRlp() []byte {
 	return Encode(preEnc)
 }
 
-func (tx *Transaction) UnmarshalRlp(data []byte) {
+func (tx *Transaction) RlpDecode(data []byte) {
 	decoder := NewRlpDecoder(data)
 
 	tx.Nonce = decoder.Get(0).AsString()

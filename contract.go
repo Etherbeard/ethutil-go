@@ -17,11 +17,11 @@ func NewContract(Amount *big.Int, root []byte) *Contract {
 	return contract
 }
 
-func (c *Contract) MarshalRlp() []byte {
+func (c *Contract) RlpEncode() []byte {
 	return Encode([]interface{}{c.t, c.Amount, c.state.Root})
 }
 
-func (c *Contract) UnmarshalRlp(data []byte) {
+func (c *Contract) RlpDecode(data []byte) {
 	decoder := NewRlpDecoder(data)
 
 	c.t = uint32(decoder.Get(0).AsUint())
@@ -41,7 +41,7 @@ type Ether struct {
 
 func NewEtherFromData(data []byte) *Ether {
 	ether := &Ether{}
-	ether.UnmarshalRlp(data)
+	ether.RlpDecode(data)
 
 	return ether
 }
@@ -50,11 +50,11 @@ func (e *Ether) AddFee(fee *big.Int) {
 	e.Amount = e.Amount.Add(e.Amount, fee)
 }
 
-func (e *Ether) MarshalRlp() []byte {
+func (e *Ether) RlpEncode() []byte {
 	return Encode([]interface{}{e.t, e.Amount, e.Nonce})
 }
 
-func (e *Ether) UnmarshalRlp(data []byte) {
+func (e *Ether) RlpDecode(data []byte) {
 	decoder := NewRlpDecoder(data)
 
 	e.t = uint32(decoder.Get(0).AsUint())

@@ -83,6 +83,14 @@ func (attr *RlpDataAttribute) AsUint() uint64 {
 	return 0
 }
 
+func (attr *RlpDataAttribute) AsByte() byte {
+	if value, ok := attr.dataAttrib.(byte); ok {
+		return value
+	}
+
+	return 0x0
+}
+
 func (attr *RlpDataAttribute) AsBigInt() *big.Int {
 	if a, ok := attr.dataAttrib.([]byte); ok {
 		b := new(big.Int)
@@ -140,16 +148,17 @@ type RlpDecoder struct {
 	rlpData interface{}
 }
 
-func NewRlpDecoder(rlpData []byte) *RlpDecoder {
-	decoder := &RlpDecoder{}
+func NewRlpDecoder(rlpData []byte) *RlpDataAttribute {
+	//decoder := &RlpDecoder{}
 	// Decode the data
 
 	if len(rlpData) != 0 {
 		data, _ := Decode(rlpData, 0)
-		decoder.rlpData = data
+		//decoder.rlpData = data
+		return NewRlpDataAttribute(data)
 	}
 
-	return decoder
+	return NewRlpDataAttribute(nil)
 }
 
 func (dec *RlpDecoder) Get(idx int) *RlpDataAttribute {
@@ -260,65 +269,74 @@ func Decode(data []byte, pos uint64) (interface{}, uint64) {
 func Encode(object interface{}) []byte {
 	var buff bytes.Buffer
 
-	switch t := object.(type) {
-	case uint32, uint64:
-		var num uint64
-		if _num, ok := t.(uint64); ok {
-			num = _num
-		} else if _num, ok := t.(uint32); ok {
-			num = uint64(_num)
-		}
+	if object != nil {
+		switch t := object.(type) {
+		case int:
+			buff.Write(Encode(uint32(t)))
+		case uint32, uint64:
+			var num uint64
+			if _num, ok := t.(uint64); ok {
+				num = _num
+			} else if _num, ok := t.(uint32); ok {
+				num = uint64(_num)
+			}
 
-		if num >= 0 && num < 24 {
-			buff.WriteString(string(num))
-		} else if num <= uint64(math.Pow(2, 256)) {
-			b := ToBin(num, 0)
-			buff.WriteString(string(len(b)+23) + b)
-		} else {
-			b := ToBin(num, 0)
-			b2 := ToBin(uint64(len(b)), 0)
-			buff.WriteString(string(len(b2)+55) + b2 + b)
-		}
-
-	case *big.Int:
-		buff.Write(Encode(t.String()))
-
-	case string:
-		if len(t) < 56 {
-			buff.WriteString(string(len(t)+64) + t)
-		} else {
-			b2 := ToBin(uint64(len(t)), 0)
-			buff.WriteString(string(len(b2)+119) + b2 + t)
-		}
-
-	case []byte:
-		// Cast the byte slice to a string
-		buff.Write(Encode(string(t)))
-
-	case []interface{}, []string:
-		// Inline function for writing the slice header
-		WriteSliceHeader := func(length int) {
-			if length < 56 {
-				buff.WriteByte(byte(length + 128))
+			if num >= 0 && num < 24 {
+				buff.WriteString(string(num))
+			} else if num <= uint64(math.Pow(2, 256)) {
+				b := ToBin(num, 0)
+				buff.WriteString(string(len(b)+23) + b)
 			} else {
-				b2 := ToBin(uint64(length), 0)
-				buff.WriteByte(byte(len(b2) + 183))
-				buff.WriteString(b2)
+				b := ToBin(num, 0)
+				b2 := ToBin(uint64(len(b)), 0)
+				buff.WriteString(string(len(b2)+55) + b2 + b)
 			}
-		}
 
-		// FIXME How can I do this "better"?
-		if interSlice, ok := t.([]interface{}); ok {
-			WriteSliceHeader(len(interSlice))
-			for _, val := range interSlice {
-				buff.Write(Encode(val))
+		case *big.Int:
+			buff.Write(Encode(t.String()))
+
+		case string:
+			if len(t) < 56 {
+				buff.WriteString(string(len(t)+64) + t)
+			} else {
+				b2 := ToBin(uint64(len(t)), 0)
+				buff.WriteString(string(len(b2)+119) + b2 + t)
 			}
-		} else if stringSlice, ok := t.([]string); ok {
-			WriteSliceHeader(len(stringSlice))
-			for _, val := range stringSlice {
-				buff.Write(Encode(val))
+
+		case byte:
+			buff.Write(Encode(uint32(t)))
+		case []byte:
+			// Cast the byte slice to a string
+			buff.Write(Encode(string(t)))
+
+		case []interface{}, []string:
+			// Inline function for writing the slice header
+			WriteSliceHeader := func(length int) {
+				if length < 56 {
+					buff.WriteByte(byte(length + 128))
+				} else {
+					b2 := ToBin(uint64(length), 0)
+					buff.WriteByte(byte(len(b2) + 183))
+					buff.WriteString(b2)
+				}
+			}
+
+			// FIXME How can I do this "better"?
+			if interSlice, ok := t.([]interface{}); ok {
+				WriteSliceHeader(len(interSlice))
+				for _, val := range interSlice {
+					buff.Write(Encode(val))
+				}
+			} else if stringSlice, ok := t.([]string); ok {
+				WriteSliceHeader(len(stringSlice))
+				for _, val := range stringSlice {
+					buff.Write(Encode(val))
+				}
 			}
 		}
+	} else {
+		// Write an empty string if the object was nil
+		buff.WriteString("")
 	}
 
 	return buff.Bytes()

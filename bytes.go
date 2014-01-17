@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 )
 
 func NumberToBytes(num interface{}, bits int) []byte {

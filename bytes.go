@@ -28,7 +28,6 @@ func BytesToNumber(b []byte) uint64 {
 	if err != nil {
 		fmt.Println("binary.Read failed:", err)
 	}
-	fmt.Println("number", number)
 
 	return number
 }

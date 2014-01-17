@@ -336,7 +336,7 @@ func Encode(object interface{}) []byte {
 		}
 	} else {
 		// Write an empty string if the object was nil
-		buff.WriteString("")
+		buff.Write(Encode(""))
 	}
 
 	return buff.Bytes()

@@ -6,9 +6,20 @@ import (
 	"time"
 )
 
+type BlockInfo struct {
+	Number *big.Int
+}
+
+func (bi *BlockInfo) RlpDecode(data []byte) {
+	decoder := NewRlpDecoder(data)
+	bi.Number = decoder.Get(0).AsBigInt()
+}
+
+func (bi *BlockInfo) RlpEncode() []byte {
+	return Encode([]interface{}{bi.Number})
+}
+
 type Block struct {
-	// The number of this block
-	number uint32
 	// Hash to the previous block
 	PrevHash string
 	// Uncles of this block
@@ -21,7 +32,7 @@ type Block struct {
 	// Difficulty for the current block
 	Difficulty *big.Int
 	// Creation time
-	time int64
+	Time int64
 	// Block Nonce for verification
 	Nonce *big.Int
 	// List of transactions and/or contracts
@@ -34,7 +45,7 @@ type Block struct {
 // New block takes a raw encoded string
 func NewBlock(raw []byte) *Block {
 	block := &Block{}
-	block.UnmarshalRlp(raw)
+	block.RlpDecode(raw)
 
 	return block
 }
@@ -44,12 +55,11 @@ func CreateTestBlock( /* TODO use raw data */ transactions []*Transaction) *Bloc
 	block := &Block{
 		// Slice of transactions to include in this block
 		transactions: transactions,
-		number:       1,
 		PrevHash:     "1234",
 		Coinbase:     "me",
 		Difficulty:   big.NewInt(10),
 		Nonce:        BigInt0,
-		time:         time.Now().Unix(),
+		Time:         time.Now().Unix(),
 	}
 
 	return block
@@ -67,12 +77,11 @@ func CreateBlock(root string,
 	block := &Block{
 		// Slice of transactions to include in this block
 		transactions: txes,
-		number:       uint32(num),
 		PrevHash:     PrevHash,
 		Coinbase:     base,
 		Difficulty:   Difficulty,
 		Nonce:        Nonce,
-		time:         time.Now().Unix(),
+		Time:         time.Now().Unix(),
 		extra:        extra,
 	}
 	block.state = NewTrie(Config.Db, root)
@@ -84,7 +93,7 @@ func CreateBlock(root string,
 
 			value := tx.Value
 			contract := NewContract(value, []byte(""))
-			block.state.Update(string(addr), string(contract.MarshalRlp()))
+			block.state.Update(string(addr), string(contract.RlpEncode()))
 			for i, val := range tx.Data {
 				contract.state.Update(string(NumberToBytes(uint64(i), 32)), val)
 			}
@@ -110,13 +119,13 @@ func (block *Block) GetContract(addr []byte) *Contract {
 	}
 
 	contract := &Contract{}
-	contract.UnmarshalRlp([]byte(data))
+	contract.RlpDecode([]byte(data))
 
 	return contract
 }
 
 func (block *Block) UpdateContract(addr []byte, contract *Contract) {
-	block.state.Update(string(addr), string(contract.MarshalRlp()))
+	block.state.Update(string(addr), string(contract.RlpEncode()))
 }
 
 func (block *Block) PayFee(addr []byte, fee *big.Int) bool {
@@ -130,7 +139,7 @@ func (block *Block) PayFee(addr []byte, fee *big.Int) bool {
 
 	base := new(big.Int)
 	contract.Amount = base.Sub(contract.Amount, fee)
-	block.state.Update(string(addr), string(contract.MarshalRlp()))
+	block.state.Update(string(addr), string(contract.RlpEncode()))
 
 	data := block.state.Get(string(block.Coinbase))
 
@@ -140,7 +149,7 @@ func (block *Block) PayFee(addr []byte, fee *big.Int) bool {
 	base = new(big.Int)
 	ether.Amount = base.Add(ether.Amount, fee)
 
-	block.state.Update(string(block.Coinbase), string(ether.MarshalRlp()))
+	block.state.Update(string(block.Coinbase), string(ether.RlpEncode()))
 
 	return true
 }
@@ -150,12 +159,12 @@ func (block *Block) Hash() []byte {
 	return Sha256Bin(Encode(block.header(block.TxSha, block.UncleSha)))
 }
 
-func (block *Block) MarshalRlp() []byte {
+func (block *Block) RlpEncode() []byte {
 	// Marshal the transactions of this block
 	encTx := make([]string, len(block.transactions))
 	for i, tx := range block.transactions {
 		// Cast it to a string (safe)
-		encTx[i] = string(tx.MarshalRlp())
+		encTx[i] = string(tx.RlpEncode())
 	}
 	tsha := Sha256Bin([]byte(Encode(encTx)))
 
@@ -174,7 +183,7 @@ func (block *Block) MarshalRlp() []byte {
 	return Encode([]interface{}{header, encTx, uncles})
 }
 
-func (block *Block) UnmarshalRlp(data []byte) {
+func (block *Block) RlpDecode(data []byte) {
 	decoder := NewRlpDecoder(data)
 
 	header := decoder.Get(0)
@@ -185,7 +194,7 @@ func (block *Block) UnmarshalRlp(data []byte) {
 	block.state = NewTrie(Config.Db, header.Get(3).AsString())
 	block.TxSha = header.Get(4).AsBytes()
 	block.Difficulty = header.Get(5).AsBigInt()
-	block.time = int64(header.Get(6).AsUint())
+	block.Time = int64(header.Get(6).AsUint())
 	block.Nonce = header.Get(7).AsBigInt()
 
 	// Tx list might be empty if this is an uncle. Uncles only have their
@@ -195,7 +204,7 @@ func (block *Block) UnmarshalRlp(data []byte) {
 		block.transactions = make([]*Transaction, txes.Length())
 		for i := 0; i < txes.Length(); i++ {
 			tx := &Transaction{}
-			tx.UnmarshalRlp(txes.Get(i).AsBytes())
+			tx.RlpDecode(txes.Get(i).AsBytes())
 			block.transactions[i] = tx
 		}
 	}
@@ -207,7 +216,7 @@ func (block *Block) UnmarshalRlp(data []byte) {
 			block := &Block{}
 			// This is terrible but it's the way it has to be since
 			// I'm going by now means doing it by hand (the data is in it's raw format in interface form)
-			block.UnmarshalRlp(Encode(uncles.Get(i).AsRaw()))
+			block.RlpDecode(Encode(uncles.Get(i).AsRaw()))
 			block.Uncles[i] = block
 		}
 	}
@@ -229,7 +238,7 @@ func (block *Block) header(txSha []byte, uncleSha []byte) []interface{} {
 		// Current block Difficulty
 		block.Difficulty,
 		// Time the block was found?
-		uint64(block.time),
+		uint64(block.Time),
 		// Block's Nonce for validation
 		block.Nonce,
 	}
@@ -250,7 +259,7 @@ func (block *Block) uncleHeader() []interface{} {
 		// Current block Difficulty
 		block.Difficulty,
 		// Time the block was found?
-		uint64(block.time),
+		uint64(block.Time),
 		// Block's Nonce for validation
 		block.Nonce,
 	}

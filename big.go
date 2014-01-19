@@ -6,6 +6,12 @@ import (
 
 var BigInt0 *big.Int = big.NewInt(0)
 
+// True
+var BigTrue *big.Int = big.NewInt(1)
+
+// False
+var BigFalse *big.Int = big.NewInt(0)
+
 // Returns the power of two integers
 func BigPow(a, b int) *big.Int {
 	c := new(big.Int)

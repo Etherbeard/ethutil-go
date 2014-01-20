@@ -5,27 +5,27 @@ import (
 )
 
 type Contract struct {
-	t      uint32 // contract is always 1
 	Amount *big.Int
+	Nonce  uint64
 	state  *Trie
 }
 
 func NewContract(Amount *big.Int, root []byte) *Contract {
-	contract := &Contract{t: 1, Amount: Amount}
+	contract := &Contract{Amount: Amount}
 	contract.state = NewTrie(Config.Db, string(root))
 
 	return contract
 }
 
 func (c *Contract) RlpEncode() []byte {
-	return Encode([]interface{}{c.t, c.Amount, c.state.Root})
+	return Encode([]interface{}{c.Amount, c.Nonce, c.state.Root})
 }
 
 func (c *Contract) RlpDecode(data []byte) {
 	decoder := NewRlpDecoder(data)
 
-	c.t = uint32(decoder.Get(0).AsUint())
-	c.Amount = decoder.Get(1).AsBigInt()
+	c.Amount = decoder.Get(0).AsBigInt()
+	c.Nonce = decoder.Get(1).AsUint()
 	c.state = NewTrie(Config.Db, decoder.Get(2).AsString())
 }
 
@@ -34,9 +34,12 @@ func (c *Contract) State() *Trie {
 }
 
 type Ether struct {
-	t      uint32
 	Amount *big.Int
-	Nonce  string
+	Nonce  uint64
+}
+
+func NewEther(amount *big.Int) *Ether {
+	return &Ether{Amount: amount, Nonce: 0}
 }
 
 func NewEtherFromData(data []byte) *Ether {
@@ -51,13 +54,12 @@ func (e *Ether) AddFee(fee *big.Int) {
 }
 
 func (e *Ether) RlpEncode() []byte {
-	return Encode([]interface{}{e.t, e.Amount, e.Nonce})
+	return Encode([]interface{}{e.Amount, e.Nonce, ""})
 }
 
 func (e *Ether) RlpDecode(data []byte) {
 	decoder := NewRlpDecoder(data)
 
-	e.t = uint32(decoder.Get(0).AsUint())
 	e.Amount = decoder.Get(1).AsBigInt()
-	e.Nonce = decoder.Get(2).AsString()
+	e.Nonce = decoder.Get(2).AsUint()
 }

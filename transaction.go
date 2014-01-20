@@ -31,8 +31,8 @@ func NewTransaction(to string, value *big.Int, data []string) *Transaction {
 		tx.Data[i] = instr
 	}
 
+	// TMP
 	tx.Sign([]byte("privkey"))
-	tx.Sender()
 
 	return &tx
 }
